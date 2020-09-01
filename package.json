@@ -1,0 +1,15 @@
+{
+  "name": "select-files-cli",
+  "version": "0.0.1",
+  "description": "Allows for the selection of files via the command line",
+  "main": "index.js",
+  "scripts": {
+    "example": "node example"
+  },
+  "author": "swseverance@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "4.1.0",
+    "inquirer": "7.3.3"
+  }
+}
