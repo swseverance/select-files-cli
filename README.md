@@ -21,7 +21,7 @@ selectFiles().then(({ selectedFiles, status }) => {
 });
 ```
 
-![](cli.png)
+![](https://github.com/swseverance/select-files-cli/blob/master/cli.png)
 
 ## Advanced Usage
 
@@ -52,7 +52,7 @@ selectFiles(options).then(...);
     return !/node_modules$/gi.test(directoryName);
   },
 ```
-7.  `fileFilter`: function => boolean
+8.  `fileFilter`: function => boolean
     * Return `false` for any file that you do not want to appear in the cli
 ```javascript
   fileFilter: (fileName) => {
