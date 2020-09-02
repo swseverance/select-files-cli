@@ -21,7 +21,8 @@ selectFiles().then(({ selectedFiles, status }) => {
 });
 ```
 
-![](https://github.com/swseverance/select-files-cli/blob/master/cli.png)
+<img
+  src="https://github.com/swseverance/select-files-cli/raw/master/cli.png" alt="select-files-cli">
 
 ## Advanced Usage
 
@@ -44,7 +45,7 @@ selectFiles(options).then(...);
     * Defaults to `process.cwd()`
 6.  `root`: string
     * The top level directory the user has access to
-    * Defaults to `process.cwd()
+    * Defaults to `process.cwd()`
 7.  `directoryFilter`: function => boolean
     * Return `false` for any directory that you do not want to appear in the cli
 ```javascript
