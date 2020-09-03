@@ -3,66 +3,128 @@ const path = require('path');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 
-const defaultOptions = {
-  directoryFilter: () => true,
-  fileFilter: () => true,
-  root: process.cwd(),
-  startingPath: process.cwd(),
-  multi: true,
-  pageSize: 10,
-  selectedFiles: [],
-  clearConsole: true,
-};
 const COMPLETED = 'SELECTION_COMPLETED';
 const CANCELLED = 'SELECTION_CANCELLED';
 const CHECKMARK = '\u2713';
 
-const isDirectory = (path) => fs.statSync(path).isDirectory();
-const isFile = (path) => fs.statSync(path).isFile();
+class FilesSystemService {
+  directories(directoryPath, directoryFilter = () => true) {
+    return fs.readdirSync(directoryPath).filter((name) => {
+      const joinedPath = path.join(directoryPath, name);
+      return this.isDirectory(joinedPath) && directoryFilter(joinedPath);
+    });
+  }
+
+  files(directoryPath, fileFilter = () => true) {
+    return fs.readdirSync(directoryPath).filter((name) => {
+      const joinedPath = path.join(directoryPath, name);
+      return this.isFile(joinedPath) && fileFilter(joinedPath);
+    });
+  }
+
+  isDirectory(directoryPath) {
+    return fs.statSync(directoryPath).isDirectory();
+  }
+
+  isFile(filePath) {
+    return fs.statSync(filePath).isFile();
+  }
+}
+
+class FilesSelectionService extends Set {
+  constructor(selectedFiles) {
+    super(selectedFiles);
+
+    this.lastFileSelected = null;
+  }
+
+  get selectedFiles() {
+    return Array.from(this);
+  }
+
+  isSelected(file) {
+    return this.has(file);
+  }
+
+  selectFile(file) {
+    this.add(file);
+    this.lastFileSelected = file;
+  }
+
+  removeFile(file) {
+    this.delete(file);
+  }
+}
+
+class LocationService {
+  constructor(currentPath) {
+    this.currentPath = currentPath;
+  }
+}
+
+class OptionsService {
+  constructor(options) {
+    this.options = { ...this.defaultOptions, ...options };
+  }
+
+  get defaultOptions() {
+    return {
+      directoryFilter: () => true,
+      fileFilter: () => true,
+      root: process.cwd(),
+      startingPath: process.cwd(),
+      multi: true,
+      pageSize: 10,
+      selectedFiles: [],
+      clearConsole: true,
+    };
+  }
+}
 
 const selectFiles = function (options = {}) {
-  options = { ...defaultOptions, ...options };
-
-  const selectedFiles = new Set(options.selectedFiles);
-  let currentPath = options.startingPath;
-  let lastFileSelected = null;
+  const optionsService = new OptionsService(options);
+  const locationService = new LocationService(
+    optionsService.options.startingPath
+  );
+  const fileSystemService = new FilesSystemService();
+  const filesSelectionService = new FilesSelectionService(
+    optionsService.options.selectedFiles
+  );
 
   return new Promise((resolve) => {
     (async function promptUserToSelectFiles() {
-      const directories = currentPath === options.root ? [] : ['..'];
-      const files = [];
+      const directories = fileSystemService.directories(
+        locationService.currentPath,
+        optionsService.options.directoryFilter
+      );
 
-      fs.readdirSync(currentPath).forEach((name) => {
-        const directoryOrFilePath = path.join(currentPath, name);
-        if (
-          isDirectory(directoryOrFilePath) &&
-          options.directoryFilter(directoryOrFilePath)
-        ) {
-          directories.push(name);
-        } else if (
-          isFile(directoryOrFilePath) &&
-          options.fileFilter(directoryOrFilePath)
-        ) {
-          files.push(name);
-        }
-      });
+      if (locationService.currentPath !== optionsService.options.root) {
+        directories.unshift('..');
+      }
+
+      const files = fileSystemService.files(
+        locationService.currentPath,
+        optionsService.options.fileFilter
+      );
 
       const choices = [
         ...directories.map((directoryName) => {
-          const value = path.join(currentPath, directoryName);
+          const value = path.join(locationService.currentPath, directoryName);
           const name = chalk.yellow(directoryName);
           return { value, name };
         }),
         ...files.map((fileName) => {
-          const value = path.join(currentPath, fileName);
+          const value = path.join(locationService.currentPath, fileName);
           const name = `${fileName} ${
-            selectedFiles.has(value) ? chalk.green(CHECKMARK) : ''
+            filesSelectionService.isSelected(value)
+              ? chalk.green(CHECKMARK)
+              : ''
           }`;
           return { value, name };
         }),
       ];
 
-      if (selectedFiles.size) {
+      if (filesSelectionService.selectedFiles.length) {
         choices.push({
           name: chalk.green('-- File Selection Complete --'),
           value: COMPLETED,
@@ -74,47 +136,45 @@ const selectFiles = function (options = {}) {
         value: CANCELLED,
       });
 
-      if (options.clearConsole) {
+      if (optionsService.options.clearConsole) {
         console.clear();
       }
 
       const { selection } = await inquirer.prompt([
         {
           type: 'list',
-          message: `Select file(s) in ${currentPath}`,
+          message: `Select file(s) in ${locationService.currentPath}`,
           name: 'selection',
-          pageSize: options.pageSize,
+          pageSize: optionsService.options.pageSize,
           choices,
-          default: () => lastFileSelected,
+          default: () => filesSelectionService.lastFileSelected,
         },
       ]);
 
-      if (options.clearConsole) {
+      if (optionsService.options.clearConsole) {
         console.clear();
       }
 
       if (selection === COMPLETED || selection === CANCELLED) {
         return resolve({
-          selectedFiles: Array.from(selectedFiles),
+          selectedFiles: filesSelectionService.selectedFiles,
           status: selection,
         });
-      } else if (!options.multi) {
+      } else if (!optionsService.options.multi) {
         return resolve({
           selectedFiles: [selection],
           status: COMPLETED,
         });
       }
 
-      if (isDirectory(selection)) {
-        currentPath = selection;
-        lastFileSelected = null;
+      if (fileSystemService.isDirectory(selection)) {
+        locationService.currentPath = selection;
       } else {
-        if (selectedFiles.has(selection)) {
-          selectedFiles.delete(selection);
+        if (filesSelectionService.isSelected(selection)) {
+          filesSelectionService.removeFile(selection);
         } else {
-          selectedFiles.add(selection);
+          filesSelectionService.selectFile(selection);
         }
-        lastFileSelected = selection;
       }
 
       promptUserToSelectFiles();
