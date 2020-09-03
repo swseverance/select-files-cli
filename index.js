@@ -28,7 +28,7 @@ const selectFiles = function (options = {}) {
   let lastFileSelected = null;
 
   return new Promise((resolve) => {
-    (function promptUserToSelectFiles() {
+    (async function promptUserToSelectFiles() {
       const directories = currentPath === options.root ? [] : ['..'];
       const files = [];
 
@@ -70,7 +70,7 @@ const selectFiles = function (options = {}) {
       }
 
       choices.push({
-        name: chalk.red('-- Cancel File Selection --'),
+        name: chalk.red('-- Cancel  File  Selection --'),
         value: CANCELLED,
       });
 
@@ -78,48 +78,46 @@ const selectFiles = function (options = {}) {
         console.clear();
       }
 
-      inquirer
-        .prompt([
-          {
-            type: 'list',
-            message: `Select file(s) in ${currentPath}`,
-            name: 'selection',
-            pageSize: options.pageSize,
-            choices,
-            default: () => lastFileSelected,
-          },
-        ])
-        .then(({ selection }) => {
-          if (options.clearConsole) {
-            console.clear();
-          }
+      const { selection } = await inquirer.prompt([
+        {
+          type: 'list',
+          message: `Select file(s) in ${currentPath}`,
+          name: 'selection',
+          pageSize: options.pageSize,
+          choices,
+          default: () => lastFileSelected,
+        },
+      ]);
 
-          if (selection === COMPLETED || selection === CANCELLED) {
-            return resolve({
-              selectedFiles: Array.from(selectedFiles),
-              status: selection,
-            });
-          } else if (!options.multi) {
-            return resolve({
-              selectedFiles: [selection],
-              status: COMPLETED,
-            });
-          }
+      if (options.clearConsole) {
+        console.clear();
+      }
 
-          if (isDirectory(selection)) {
-            currentPath = selection;
-            lastFileSelected = null;
-          } else {
-            if (selectedFiles.has(selection)) {
-              selectedFiles.delete(selection);
-            } else {
-              selectedFiles.add(selection);
-            }
-            lastFileSelected = selection;
-          }
-
-          promptUserToSelectFiles();
+      if (selection === COMPLETED || selection === CANCELLED) {
+        return resolve({
+          selectedFiles: Array.from(selectedFiles),
+          status: selection,
         });
+      } else if (!options.multi) {
+        return resolve({
+          selectedFiles: [selection],
+          status: COMPLETED,
+        });
+      }
+
+      if (isDirectory(selection)) {
+        currentPath = selection;
+        lastFileSelected = null;
+      } else {
+        if (selectedFiles.has(selection)) {
+          selectedFiles.delete(selection);
+        } else {
+          selectedFiles.add(selection);
+        }
+        lastFileSelected = selection;
+      }
+
+      promptUserToSelectFiles();
     })();
   });
 };
