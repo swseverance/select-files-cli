@@ -3,6 +3,9 @@
   "version": "0.0.3",
   "description": "Allows for the selection of files via the command line",
   "main": "index.js",
+  "engines": {
+    "node": ">=10"
+  },
   "scripts": {
     "example": "node example"
   },
