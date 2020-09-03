@@ -32,28 +32,28 @@ selectFiles(options).then(...);
 
 ### Options
 
-1. `pageSize`: int
+* `pageSize`: int
     * Default value is `10`
-2. `multi`: boolean
+* `multi`: boolean
     * Defaults to `true` to allow for selection of multiple files
-3. `selectedFiles`: string[]
+* `selectedFiles`: string[]
     * Files that will initially be selected
-4. `clearConsole`: boolean
+* `clearConsole`: boolean
     * Defaults to `true`
-5.  `startingPath`: string
+*  `startingPath`: string
     * Where the user will initially be prompted to select files
     * Defaults to `process.cwd()`
-6.  `root`: string
+*  `root`: string
     * The top level directory the user has access to
     * Defaults to `process.cwd()`
-7.  `directoryFilter`: function => boolean
+*  `directoryFilter`: function => boolean
     * Return `false` for any directory that you do not want to appear in the cli
 ```javascript
   directoryFilter: (directoryName) => {
     return !/node_modules$/gi.test(directoryName);
   },
 ```
-8.  `fileFilter`: function => boolean
+*  `fileFilter`: function => boolean
     * Return `false` for any file that you do not want to appear in the cli
 ```javascript
   fileFilter: (fileName) => {
